@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Conversion Task</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .button-container {
+            margin-top: 20px;
+        }
+
+        input[type="file"] {
+            margin-bottom: 15px;
+        }
+
+        .progress-wrapper {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .progress {
+            width: 100%;
+            background-color: #f3f3f3;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 30px;
+            background-color: #28a745;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+            width: 0%;
+            transition: width 0.4s ease-in-out;
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        .audio-player-container {
+            margin-top: 20px;
+        }
+
+        .status {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #555;
+        }
+
+        #recording-indicator {
+            display: none;
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: red;
+        }
+    </style>
+    <script src="https://cdn.webrtc-experiment.com/RecordRTC.js"></script>
+    <script>
+        let currentStep = 0;
+        let checkStatusInterval;
+        let uploadedFileName;
+        let outputFile;
+        let checkCount = 0;
+        let firstSubmit = true;
+
+        let recorder;
+        let audioBlob;
+
+
+const artistNames = [
+    "21_savage_100k", "21_savage_50k", "2pac_tupac_50k", "6IX9INE", "DestroyLonely5750",
+    "aaliyah_23.2k", "aaliyah_33.6k", "aitana_75k", "alicia_keys_135k", "alizee_(2000-2003)_23.2k",
+    "alizee_45.6k", "amano_pikamee_(voms_project)_30k", "ameer_vann_15k", "amelia_watson_(hololive_en)_30k",
+    "andrew_tate_50k", "anuel_aa_(2016_era)_-_500_steps", "anuel_aa_41.6k", "ariana_grande_73k", "arianagrande",
+    "aries_of_wunderworld_150k", "ayesha_erotica_100k", "baby_keem_191k", "bad_bunny", "bad_bunny_180.8k",
+    "bananirou_100k", "bangchan2400steps", "barbara_jp_(akari_kito)_(genshin_impact)_unknown", "bart_simpson_22k",
+    "biden_20k", "biggie_smalls_112.8k", "billie_eilish_2016-2018_1k", "billie_eilish_8k", "billie_joe_24k",
+    "binyamin_netanyahu_(israel's_pm)_67.7k", "bktherula_47k", "blackpink_jennie_kim_65k", "britishcat8800",
+    "britney_speaks_(young)_17k", "britney_spears_100k", "bruno_mars_124.9k", "bruno_mars_24k", "bryska_45.6k",
+    "byun_baekhyun_12k", "c.r.o_42k", "camila_cabello_200k", "camilo_-_45k", "canserbero_67k", "caparezza_200k",
+    "cartman", "cazzu_62k", "cerati16k", "ceres_fauna_(speaking)", "chalinosanchez", "chano_(from_tanbionica)_24k",
+    "charlie_puth_36k", "charlie_scene_14k", "charlygod", "chester_bennington_linkin_park_79k", "chief_keef_100k",
+    "chris_brown_(svc)_105k", "chris_chan", "chris_cornell_7.4k", "chris_martin_svc_365k", "colin_camacho_100k",
+    "comethazine_(conversational)_25k", "cupcakke_100k", "dalasreview", "danny_ocean_34k", "david_bowie_7.2k",
+    "dillom_12.8k", "doja_cat_163.2k", "don_toliver_68k", "don_toliver_88k", "drake", "drake_100k", "dua_lipa_72.8k",
+    "duki_116.8k", "duki_1k", "duki_75k", "eazye", "eddie_vedder_48.8k", "el_puto_coke_10k", "elon_musk_99k",
+    "elton_john_14k", "eminem_(slim_shady_edition)_209k", "eminem_general_model_v1_86k", "enna_alouette_(nijisanji_en)_10k",
+    "eric_cartman_10.2k", "farruko", "fase_yoda_50k", "feid_147k", "ferxxo_unknown_steps", "foda_c_(french_rapper)_30k",
+    "frank_ocean_30kepoch70mindataset_400.8k", "freddie_mercury_125k", "freddie_mercury_300k", "future_45.6k",
+    "ganyu_(reina_ueda)_(svc)_1k_epoch)", "gawr_gura_(hololive_en)_30k", "gazo10k", "george_harrison_unknown_steps",
+    "giorno_giovanna_(jojo)_6k", "giovanna_grigio_(chiquititas_2013_era)", "gunna_123k_(sounds_bad_with_high_notes)",
+    "harry_styles_72k", "hayley_williams_(from_paramore)_300k", "homer_simpson_22k", "huh_yunjin_5k",
+    "hyunjin_(from_stray_kids)_800_steps", "ibai_11k", "ice_spice_unknown_steps", "indio_solari_60k",
+    "irene_(from_red_velvet)_4k", "j_cole_100k", "jack_4799k", "james_hetfield_49.6k", "jamiroquai_44k", "jay_z_54.4k",
+    "jennie_kim_(from_blackpink)_65k", "jeon_so-yeon_(from_(g)i-dle)_800_steps", "jhene_aiko_61.6k", "jhope",
+    "jihyo_(from_twice)_1.6k", "jimin_(from_bts)_24k", "jisoo_(from_blackpink)_113k", "john_lennon_365k",
+    "juice_wrld_(high)_160k", "kendrick_lamar_100.2k", "kurt_cobain_138.6k", "lil_uzi_vert_80k", "maria_becerra_122k",
+    "pac33k"
+];
+
+function renderArtistList() {
+    const artistListContainer = document.getElementById('artist-list');
+    artistNames.forEach((artist, index) => {
+        const label = document.createElement('label');
+        label.innerHTML = `
+            <input type="radio" name="artist" value="${artist}" ${index === 0 ? 'checked' : ''}>
+            ${artist.replace(/_/g, ' ')}
+            <br>
+        `;
+        artistListContainer.appendChild(label);
+    });
+}
+
+// Render the artist list on page load
+window.onload = renderArtistList;
+
+
+        function showStep(step) {
+            const steps = document.querySelectorAll('.step');
+            steps.forEach((stepElement, index) => {
+                stepElement.classList.toggle('active', index === step);
+            });
+        }
+
+        function nextStep() {
+            const steps = document.querySelectorAll('.step');
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                showStep(currentStep);
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        }
+
+        async function submitTask() {
+            const inputFileName = uploadedFileName;
+
+            if (inputFileName.endsWith('.mp3')) {
+                outputFile = inputFileName.replace('.mp3', '.out.mp3');
+            } else if (inputFileName.endsWith('.wav')) {
+                outputFile = inputFileName.replace('.wav', '.out.wav');
+            } else {
+                document.getElementById('task_id').innerText = 'Error: Unsupported file type.';
+                return;
+            }
+
+            const artist = document.querySelector('input[name="artist"]:checked').value;
+            const configFile = artist + '.json';
+            const modelFile = artist + '.pth';
+
+            document.getElementById('task_id').innerText = 'Task submitted, waiting for ID...';
+
+            nextStep();
+
+            try {
+                const response = await fetch('/runcmd', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        input_file: inputFileName,
+                        output_file: outputFile,
+                        config_file: configFile,
+                        model_file: modelFile
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.status === 202) {
+                    document.getElementById('task_id').innerText = `Task submitted! Task ID: ${data.task_id}`;
+                    startCheckingStatus(data.task_id);
+                } else {
+                    document.getElementById('task_id').innerText = `Error: ${data.error}`;
+                }
+            } catch (error) {
+                document.getElementById('task_id').innerText = `Error: ${error.message}`;
+            }
+        }
+
+        async function checkTaskStatus() {
+    const taskId = document.getElementById('task-id-input').value.trim();
+    const statusContainer = document.getElementById('task-status-result');
+    const audioContainer = document.getElementById('existing-audio-container');
+    const audioPlayer = document.getElementById('existing-audio');
+
+    if (!taskId) {
+        statusContainer.innerText = "Please enter a valid Task ID.";
+        return;
+    }
+
+    statusContainer.innerText = "Checking task status...";
+    audioContainer.style.display = "none";
+
+    try {
+        const response = await fetch(`/status/${taskId}`);
+        const data = await response.json();
+
+        if (data.status === "CONDITION_SUCCEEDED") {
+            statusContainer.innerText = "Task complete! Here's the output file:";
+            audioPlayer.src = `https://storage.googleapis.com/svc_artifacts_fire/${data.output_file}`;
+            audioContainer.style.display = "block";
+        } else {
+            statusContainer.innerText = `Status: ${data.status}`;
+        }
+    } catch (error) {
+        statusContainer.innerText = `Error: ${error.message}`;
+    }
+}
+
+
+        async function checkStatus(task_id) {
+            const response = await fetch(`/status/${task_id}`);
+            const data = await response.json();
+
+            document.getElementById('task_status').innerText = `Status: ${data.status}`;
+            document.getElementById('timer').innerText = `Retrying every 5 seconds... Attempt: ${++checkCount}`;
+            
+            if (data.status === 'CONDITION_SUCCEEDED') {
+                const outputFileUrl = `https://storage.googleapis.com/svc_artifacts_fire/${outputFile}`;
+                const audioPlayerContainer = document.getElementById('audio-player-container');
+                audioPlayerContainer.style.display = 'block';
+                const audioPlayer = document.getElementById('audio-player');
+                audioPlayer.src = outputFileUrl;
+                clearInterval(checkStatusInterval);
+                document.getElementById('timer').innerText = "Processing complete!";
+            }
+        }
+
+        function startCheckingStatus(task_id) {
+            if (firstSubmit) {
+                document.getElementById('timer').style.display = 'block';
+                firstSubmit = false;
+            }
+
+            if (checkStatusInterval) {
+                clearInterval(checkStatusInterval);
+            }
+            checkStatus(task_id);
+            checkStatusInterval = setInterval(() => {
+                checkStatus(task_id);
+            }, 5000);
+        }
+
+        function postFile() {
+            const formData = new FormData(); 
+            formData.append('file1', document.getElementById('input_file').files[0]);
+
+            const request = new XMLHttpRequest();
+            
+            request.upload.addEventListener('progress', function (e) {
+                if (e.lengthComputable) {
+                    const percent = Math.round(e.loaded / e.total * 100);
+                    document.getElementById('progress-bar-file1').style.width = percent + '%';
+                    document.getElementById('progress-bar-file1').innerText = percent + '%';
+                }
+            });
+
+            request.addEventListener('load', function () {
+                if (request.status >= 200 && request.status < 300) {
+                    uploadedFileName = document.getElementById('input_file').files[0].name;
+                    document.getElementById('upload_status').innerText = 'File uploaded successfully.';
+                    nextStep();
+                } else {
+                    document.getElementById('upload_status').innerText = `Upload failed: ${request.status} ${request.statusText}`;
+                }
+            });
+
+            request.addEventListener('error', function () {
+                document.getElementById('upload_status').innerText = 'Network error occurred.';
+            });
+
+            request.open('POST', '/api/upload/');
+            request.timeout = 45000;
+            request.send(formData);
+        }
+
+        function startRecording() {
+            const recordingIndicator = document.getElementById('recording-indicator');
+            recordingIndicator.style.display = 'block';
+
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+                recorder = RecordRTC(stream, {
+                    type: 'audio',
+                    mimeType: 'audio/wav',
+                    recorderType: StereoAudioRecorder,
+                    desiredSampRate: 16000
+                });
+                recorder.startRecording();
+            }).catch(function(error) {
+                console.error("Recording failed: ", error);
+            });
+        }
+
+        function stopRecording() {
+            const recordingIndicator = document.getElementById('recording-indicator');
+            recordingIndicator.style.display = 'none';
+
+            recorder.stopRecording(function() {
+                audioBlob = recorder.getBlob();
+
+                const audioURL = URL.createObjectURL(audioBlob);
+                const recordPreview = document.getElementById('record-preview');
+                recordPreview.src = audioURL;
+                recordPreview.style.display = 'block';
+
+                document.getElementById('recordedAudio').style.display = 'block';
+            });
+        }
+
+        function uploadRecordedAudio() {
+            const formData = new FormData();
+
+            const timestamp = new Date().toISOString().replace(/[-:.]/g, "");
+            const uniqueFilename = `recorded_audio_${timestamp}.wav`;
+
+            formData.append('file1', audioBlob, uniqueFilename);
+
+            const request = new XMLHttpRequest();
+
+            request.upload.addEventListener('progress', function (e) {
+                if (e.lengthComputable) {
+                    const percent = Math.round(e.loaded / e.total * 100);
+                    document.getElementById('progress-bar-record').style.width = percent + '%';
+                    document.getElementById('progress-bar-record').innerText = percent + '%';
+                }
+            });
+
+            request.addEventListener('load', function () {
+                if (request.status >= 200 && request.status < 300) {
+                    uploadedFileName = uniqueFilename;
+                    document.getElementById('upload_status').innerText = 'File uploaded successfully.';
+                    nextStep();
+                } else {
+                    document.getElementById('upload_status').innerText = `Upload failed: ${request.status} ${request.statusText}`;
+                }
+            });
+
+            request.addEventListener('error', function () {
+                document.getElementById('upload_status_record').innerText = 'Network error occurred.';
+            });
+
+            request.open('POST', '/api/upload/');
+            request.send(formData);
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Voice Conversion Task</h1>
+
+        <div class="step active">
+            <h2>Step 1: Upload File</h2>
+            <input type="file" id="input_file">
+            <button type="button" onclick="postFile()">Upload File</button>
+            <div id="progress-bar-file1" class="progress-bar"></div>
+            <p id="upload_status"></p>
+        
+            <hr>
+        
+            <h2>Or record audio:</h2>
+            <button type="button" onclick="startRecording()">Start Recording</button>
+            <button type="button" onclick="stopRecording()">Stop Recording</button>
+            <p id="recording-indicator">Recording is in progress...</p>
+        
+            <audio id="audio-preview" controls></audio>
+            <div id="recordedAudio" style="display: none;">
+                <p>Preview your recording:</p>
+                <audio id="record-preview" controls></audio>
+                <button type="button" onclick="uploadRecordedAudio()">Upload Recording</button>
+            </div>
+            <div id="progress-bar-record" class="progress-bar"></div>
+            <p id="upload_status_record"></p>
+        
+            <hr>
+        
+            <!-- Check Task Status Section -->
+            <h2>Check Existing Task</h2>
+            <label for="task-id-input">Enter Task ID:</label>
+            <input type="text" id="task-id-input" placeholder="e.g., 12345abcde">
+            <button type="button" onclick="checkTaskStatus()">Check Status</button>
+            <p id="task-status-result"></p>
+            <div id="existing-audio-container" style="display: none;">
+                <h3>Output Audio:</h3>
+                <audio id="existing-audio" controls></audio>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>Step 2: Select Artist</h2>
+            <div id="artist-list" style="max-height: 300px; overflow-y: scroll;"></div>
+        
+            <div class="button-container">
+                <button type="button" onclick="prevStep()">Previous</button>
+                <button type="button" onclick="submitTask()">Submit Task</button>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>Step 3: Task Status</h2>
+            <p id="task_id"></p>
+            <p id="task_status"></p>
+            <p id="timer" style="display: none;"></p>
+
+            <div id="audio-player-container" class="audio-player-container" style="display: none;">
+                <h3>Output File:</h3>
+                <audio id="audio-player" controls></audio>
+            </div>
+
+            <div class="button-container">
+                <button type="button" onclick="prevStep()">Previous</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

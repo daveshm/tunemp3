@@ -1,0 +1,38 @@
+{
+  "hosting": {
+    "public": "public",
+    "site": "inference-front-end",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "function": "api"
+      },
+      {
+      "source": "/runcmd",
+      "run": {
+        "serviceId": "infer",  // "service name" (from when you deployed the container image)
+        "region": "us-central1",    // optional (if omitted, default is us-central1)
+        "pinTag": false              // optional (see note below)
+      }
+    },
+    {
+      "source": "/status/**",
+      "run": {
+        "serviceId": "infer",  // "service name" (from when you deployed the container image)
+        "region": "us-central1",    // optional (if omitted, default is us-central1)
+        "pinTag": false              // optional (see note below)
+      }
+    }
+    ]
+  }
+  ,
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs22"
+  }
+}
