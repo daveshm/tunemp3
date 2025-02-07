@@ -1,0 +1,1 @@
+svc infer -c "/modeling/$config_file" -m "/modeling/$model_file" "/modeling/$input_file" -d cpu

@@ -1,0 +1,23 @@
+# Use an official Python runtime as a parent image
+FROM python:3.11
+
+
+RUN apt-get update && apt-get install -y \
+    cmake protobuf-compiler libprotoc-dev libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m pip install click flask requests google-cloud-storage
+
+
+RUN python3 -m pip install so-vits-svc-fork
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the current directory contents into the container at /app
+COPY python.py /app
+
+EXPOSE 5000
+
+# Define default command to run when the container starts
+CMD ["python python.py"]
